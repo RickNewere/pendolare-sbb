@@ -7,6 +7,10 @@ Web app che mostra i **3 treni imminenti** per il percorso casa-lavoro tra **Chi
 - **Andata** (Chiasso → Bioggio) e **ritorno** (Bioggio → Chiasso), con i due pulsanti in alto.
 - Selezione **automatica** in base all'ora: prima delle 13:00 mostra l'andata, dopo il ritorno. Toccando un pulsante scegli manualmente.
 
+## Sito live
+
+**https://ricknewere.github.io/pendolare-sbb/**
+
 ## Installazione su iPhone
 
 Il sito è pubblicato su GitHub Pages. Sull'iPhone:
