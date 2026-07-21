@@ -143,12 +143,6 @@ header {
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 15px; width: 22px;
 }
-.tl-row .ico.td {
-  width: 12px; height: 12px; margin: 0 5px;
-  border-radius: 50%; background: var(--dir);
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
-}
-.tl-row.train .ico.td { background: var(--dir); }
 .tl-row .t {
   font-weight: 800;
   font-size: clamp(18px, 2.2vw, 26px);

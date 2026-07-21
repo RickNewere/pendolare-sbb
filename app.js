@@ -126,7 +126,7 @@ function renderCard(trip, isNext) {
       ? ` <span class="plat ${leg.platChanged ? "changed" : ""}">bin. <b>${escapeHtml(leg.platform)}</b>${leg.platChanged ? " (cambiato)" : ""}</span>`
       : "";
     return `<div class="tl-row train">
-        <span class="ico td"></span>
+        <span class="ico">🚆</span>
         ${timeCell(leg.depReal, leg.depDelay)}
         <span class="place"><b>${escapeHtml(leg.station)}</b> ${badge}${plat}</span>
       </div>`;

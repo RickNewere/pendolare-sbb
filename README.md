@@ -28,8 +28,8 @@ Per ognuno dei 3 treni imminenti, una **timeline porta a porta** con l'orario di
 - Conto alla rovescia grande: **"min prima di uscire"** (usa l'orario reale, ritardi inclusi; diventa "esci adesso" a zero).
 
 Tempi a piedi impostati:
-- **Andata**: 6 min per arrivare in stazione (Chiasso) + 10 min dalla stazione (Bioggio Molinazzo) al lavoro.
-- **Ritorno**: il contrario, 10 min alla stazione (Bioggio Molinazzo) + 6 min dalla stazione (Chiasso) a casa.
+- **Andata**: 7 min per arrivare in stazione (Chiasso) + 10 min dalla stazione (Bioggio Molinazzo) al lavoro.
+- **Ritorno**: il contrario, 10 min alla stazione (Bioggio Molinazzo) + 7 min dalla stazione (Chiasso) a casa.
 
 **Ritardi**: ogni tratta mostra l'orario reale in giallo con i minuti (`+n′`) se in ritardo, altrimenti "in orario". Se il binario reale cambia rispetto all'orario, lo segnala come "(cambiato)".
 
@@ -61,7 +61,7 @@ Stazioni e tempi a piedi sono impostati in fondo a ogni `index.html`:
 ```js
 window.APP_CONFIG = {
   from: "Chiasso", to: "Bioggio Molinazzo", dir: "andata",
-  walkBefore: 6, walkAfter: 10, beforeLabel: "Esci di casa", afterLabel: "Al lavoro",
+  walkBefore: 7, walkAfter: 10, beforeLabel: "Esci di casa", afterLabel: "Al lavoro",
 };
 ```
 
