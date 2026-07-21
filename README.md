@@ -11,22 +11,6 @@ Pagina di scelta: https://ricknewere.github.io/pendolare-sbb/
 
 Le due app condividono lo stesso codice (`style.css` e `app.js`): cambia solo la direzione. Icone distinte: freccia **rossa a destra** per l'andata, **blu a sinistra** per il ritorno.
 
-## Installazione su iPhone
-
-Per ciascuna app, sull'iPhone:
-1. Apri l'URL in **Safari**.
-2. Tocca **Condividi** → **Aggiungi a Home**.
-3. Ripeti con l'altro URL: avrai **due icone separate** sulla home.
-
-## Cosa mostra
-
-Per ognuno dei 3 treni imminenti, una **timeline porta a porta** con l'orario di ogni passaggio:
-- **Esci di casa / dal lavoro**: orario in cui uscire, calcolato togliendo i minuti a piedi fino alla stazione.
-- **Ogni tratta con il suo orario di partenza**, incluso il **treno intermedio da Lugano** (la coincidenza `S60`/`RE80`): così sai a che ora parte anche il secondo treno.
-- **Arrivo** alla stazione di destinazione.
-- **Arrivo a destinazione** (lavoro / casa): orario di arrivo del treno più i minuti a piedi finali.
-- Conto alla rovescia grande: **"min prima di uscire"** (usa l'orario reale, ritardi inclusi; diventa "esci adesso" a zero).
-
 Tempi a piedi impostati:
 - **Andata**: 7 min per arrivare in stazione (Chiasso) + 10 min dalla stazione (Bioggio Molinazzo) al lavoro.
 - **Ritorno**: il contrario, 10 min alla stazione (Bioggio Molinazzo) + 7 min dalla stazione (Chiasso) a casa.
@@ -53,16 +37,3 @@ icon-andata-*.png     icone andata (rosse)
 icon-ritorno-*.png    icone ritorno (blu)
 .github/workflows/deploy.yml   deploy automatico su GitHub Pages
 ```
-
-## Personalizzare
-
-Stazioni e tempi a piedi sono impostati in fondo a ogni `index.html`:
-
-```js
-window.APP_CONFIG = {
-  from: "Chiasso", to: "Bioggio Molinazzo", dir: "andata",
-  walkBefore: 7, walkAfter: 10, beforeLabel: "Esci di casa", afterLabel: "Al lavoro",
-};
-```
-
-Ogni push su `main` ripubblica il sito tramite GitHub Actions.
