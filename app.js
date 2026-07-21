@@ -1,5 +1,8 @@
 // Config impostata dalla pagina (andata/ritorno) prima di caricare questo file.
-const CFG = window.APP_CONFIG || { from: "Chiasso", to: "Bioggio", dir: "andata" };
+const CFG = window.APP_CONFIG || {
+  from: "Chiasso", to: "Bioggio Molinazzo", dir: "andata",
+  walkBefore: 6, walkAfter: 10, beforeLabel: "Esci di casa", afterLabel: "Al lavoro",
+};
 const SHOW = 3;               // quanti viaggi mostrare
 const REFRESH_MS = 60 * 1000; // aggiorna dati ogni 60s
 
@@ -20,22 +23,22 @@ function tickClock() {
 function fmtTime(ts) {
   return new Date(ts * 1000).toLocaleTimeString("it-CH", { hour: "2-digit", minute: "2-digit" });
 }
-function fmtISO(iso) {
-  return new Date(iso).toLocaleTimeString("it-CH", { hour: "2-digit", minute: "2-digit" });
-}
 
 // ---------- Ritardo ----------
 // Legge il ritardo dai dati SBB: prima il campo "delay", altrimenti lo calcola
-// dalla differenza tra orario previsto (prognosis) e orario di orario.
+// dalla differenza tra orario di orario e orario previsto (prognosis).
 function getDelayMin(cp) {
   if (cp && typeof cp.delay === "number") return cp.delay;
-  if (cp && cp.prognosis && cp.prognosis.departure && cp.departure) {
+  if (cp && cp.prognosis && cp.prognosis.departure && cp.departure)
     return Math.round((new Date(cp.prognosis.departure) - new Date(cp.departure)) / 60000);
-  }
-  if (cp && cp.prognosis && cp.prognosis.arrival && cp.arrival) {
+  if (cp && cp.prognosis && cp.prognosis.arrival && cp.arrival)
     return Math.round((new Date(cp.prognosis.arrival) - new Date(cp.arrival)) / 60000);
-  }
   return 0;
+}
+function shortLine(journey) {
+  const cat = (journey.category || "").trim();
+  const num = journey.number ? String(journey.number).trim() : "";
+  return (cat + num) || cat || "Treno";
 }
 
 // ---------- Fetch ----------
@@ -57,109 +60,108 @@ function setStatus(ok, msg) {
   statusEl.textContent = msg;
 }
 
-function buildLegs(conn) {
-  const legs = [];
-  for (const s of (conn.sections || [])) {
-    if (s.journey) {
-      legs.push({
-        shortLabel: shortLine(s.journey),
-        operator: s.journey.operator || "",
-        from: s.departure?.station?.name || "",
-        to: s.arrival?.station?.name || "",
-      });
-    }
-  }
-  return legs;
-}
-function shortLine(journey) {
-  const cat = (journey.category || "").trim();
-  const num = journey.number ? String(journey.number).trim() : "";
-  return (cat + num) || cat || "Treno";
+// Estrae le tratte (treni) con orario reale, + arrivo finale.
+function buildTrip(conn) {
+  const journeys = (conn.sections || []).filter(s => s.journey);
+  if (journeys.length === 0) return null;
+
+  const legs = journeys.map(s => {
+    const dep = s.departure, arr = s.arrival;
+    const depDelay = getDelayMin(dep);
+    const realPlat = dep.prognosis?.platform || dep.platform;
+    return {
+      depTs: dep.departureTimestamp,
+      depDelay,
+      depReal: dep.departureTimestamp + depDelay * 60,
+      station: dep.station?.name || "",
+      platform: realPlat,
+      platChanged: !!(dep.prognosis?.platform && dep.prognosis.platform !== dep.platform),
+      line: shortLine(s.journey),
+      isFlp: /flp/i.test(s.journey.operator || "") || /^S6\d/.test(shortLine(s.journey)),
+      arrTs: arr.arrivalTimestamp,
+      arrDelay: getDelayMin(arr),
+      arrStation: arr.station?.name || "",
+    };
+  });
+
+  const last = legs[legs.length - 1];
+  const arrReal = last.arrTs + last.arrDelay * 60;
+  return {
+    legs,
+    arrStation: last.arrStation,
+    arrTs: last.arrTs,
+    arrDelay: last.arrDelay,
+    arrReal,
+    leaveTs: legs[0].depReal - (CFG.walkBefore || 0) * 60, // quando uscire
+    doorArrTs: arrReal + (CFG.walkAfter || 0) * 60,        // quando arrivi a destinazione
+    firstDepDelay: legs[0].depDelay,
+  };
 }
 
 // ---------- Render ----------
 function render() {
   const now = Date.now() / 1000;
-  const upcoming = connections
-    .filter(c => c.from && c.from.departureTimestamp && c.from.departureTimestamp > now - 60)
+  const rows = connections
+    .map(c => ({ c, trip: buildTrip(c) }))
+    .filter(x => x.trip && x.trip.legs[0].depTs > now - 60)
     .slice(0, SHOW);
 
-  if (upcoming.length === 0) {
+  if (rows.length === 0) {
     listEl.innerHTML = `<div class="state-msg">Nessun treno imminente trovato.<br>Nuovo tentativo in corso…</div>`;
     return;
   }
-  listEl.innerHTML = upcoming.map((c, i) => renderCard(c, i === 0)).join("");
+  listEl.innerHTML = rows.map((x, i) => renderCard(x.trip, i === 0)).join("");
   updateCountdowns();
 }
 
-function renderCard(c, isNext) {
-  const depTs = c.from.departureTimestamp;
-  const arrTs = c.to.arrivalTimestamp;
-  const transfers = c.transfers || 0;
-  const durMin = arrTs && depTs ? Math.round((arrTs - depTs) / 60) : null;
+function timeCell(ts, delay) {
+  if (delay > 0) return `<span class="t late">${fmtTime(ts)} <small>+${delay}′</small></span>`;
+  return `<span class="t">${fmtTime(ts)}</span>`;
+}
 
-  const depDelay = getDelayMin(c.from);
-  const arrDelay = getDelayMin(c.to);
-
-  // Orario di partenza: se in ritardo, mostro l'orario di orario barrato + quello reale.
-  let depBlock;
-  if (depDelay > 0) {
-    const realDep = c.from.prognosis?.departure ? fmtISO(c.from.prognosis.departure) : fmtTime(depTs + depDelay * 60);
-    depBlock = `<span class="dep-time struck">${fmtTime(depTs)}</span><span class="dep-real">${realDep}</span>`;
-  } else {
-    depBlock = `<span class="dep-time">${fmtTime(depTs)}</span>`;
-  }
-
-  const delayHtml = depDelay > 0
-    ? `<span class="delay late">+${depDelay}′ ritardo</span>`
-    : `<span class="delay ontime">in orario</span>`;
-
-  // Binario: se il pronostico ne indica uno diverso, lo segnalo.
-  const schedPlat = c.from.platform;
-  const realPlat = c.from.prognosis?.platform || schedPlat;
-  const platChanged = c.from.prognosis?.platform && c.from.prognosis.platform !== schedPlat;
-  const platHtml = realPlat
-    ? `<span class="platform ${platChanged ? "changed" : ""}">Binario <b>${escapeHtml(realPlat)}</b>${platChanged ? " (cambiato)" : ""}</span>`
-    : "";
-
-  const legs = buildLegs(c);
-  const legsHtml = legs.map((leg, idx) => {
-    const isFlp = /flp/i.test(leg.operator) || /^S6\d/.test(leg.shortLabel);
-    const arrow = idx < legs.length - 1
-      ? `<span class="leg-arrow">→ ${escapeHtml(leg.to)} →</span>` : "";
-    return `<span class="leg-line ${isFlp ? "flp" : ""}"><span class="badge">${escapeHtml(leg.shortLabel)}</span></span>${arrow}`;
+function renderCard(trip, isNext) {
+  const legRows = trip.legs.map(leg => {
+    const badge = `<span class="leg-line ${leg.isFlp ? "flp" : ""}"><span class="badge">${escapeHtml(leg.line)}</span></span>`;
+    const plat = leg.platform
+      ? ` <span class="plat ${leg.platChanged ? "changed" : ""}">bin. <b>${escapeHtml(leg.platform)}</b>${leg.platChanged ? " (cambiato)" : ""}</span>`
+      : "";
+    return `<div class="tl-row train">
+        <span class="ico td"></span>
+        ${timeCell(leg.depReal, leg.depDelay)}
+        <span class="place"><b>${escapeHtml(leg.station)}</b> ${badge}${plat}</span>
+      </div>`;
   }).join("");
 
-  const transferTxt = transfers === 0
-    ? "Diretto"
-    : `${transfers} cambio${transfers > 1 ? "i" : ""}${legs.length > 1 ? " · " + escapeHtml(legs[0].to) : ""}`;
-
-  // Arrivo: se in ritardo, mostro l'orario reale in giallo.
-  let arrHtml;
-  if (arrDelay > 0) {
-    const realArr = c.to.prognosis?.arrival ? fmtISO(c.to.prognosis.arrival) : fmtTime(arrTs + arrDelay * 60);
-    arrHtml = `Arrivo <b class="late-arr">${realArr}</b> <span class="late-arr">(+${arrDelay}′)</span>`;
-  } else {
-    arrHtml = `Arrivo <b>${fmtTime(arrTs)}</b>`;
-  }
-
-  // Countdown basato sull'orario reale di partenza.
-  const realDepTs = depTs + depDelay * 60;
+  const delayChip = trip.firstDepDelay > 0
+    ? `<span class="delay late">+${trip.firstDepDelay}′ ritardo</span>`
+    : `<span class="delay ontime">in orario</span>`;
 
   return `
     <div class="card ${isNext ? "next" : ""}">
-      <div class="dep">
-        <div>${depBlock}</div>
-        <div class="dep-meta">${delayHtml} ${platHtml}</div>
+      <div class="card-head">
+        <div class="count" data-leave="${trip.leaveTs}">
+          <span class="big">--</span>
+          <span class="unit">min prima di uscire</span>
+        </div>
+        ${delayChip}
       </div>
-      <div class="path">
-        <div class="route-legs">${legsHtml}</div>
-        <div class="trip-info">${transferTxt}${durMin != null ? " · " + durMin + " min" : ""}</div>
-      </div>
-      <div class="count" data-dep="${realDepTs}">
-        <div class="big">--</div>
-        <div class="unit">min alla partenza</div>
-        <div class="arr">${arrHtml}</div>
+      <div class="tl">
+        <div class="tl-row walk lead">
+          <span class="ico">🚶</span>
+          <span class="t">${fmtTime(trip.leaveTs)}</span>
+          <span class="place">${escapeHtml(CFG.beforeLabel || "Parti")} <small>(${CFG.walkBefore}′ a piedi)</small></span>
+        </div>
+        ${legRows}
+        <div class="tl-row arr">
+          <span class="ico">🏁</span>
+          ${timeCell(trip.arrReal, trip.arrDelay)}
+          <span class="place"><b>${escapeHtml(trip.arrStation)}</b></span>
+        </div>
+        <div class="tl-row walk">
+          <span class="ico">🏁</span>
+          <span class="t">${fmtTime(trip.doorArrTs)}</span>
+          <span class="place">${escapeHtml(CFG.afterLabel || "Arrivo")} <small>(${CFG.walkAfter}′ a piedi)</small></span>
+        </div>
       </div>
     </div>`;
 }
@@ -167,18 +169,18 @@ function renderCard(c, isNext) {
 function updateCountdowns() {
   const now = Date.now() / 1000;
   document.querySelectorAll(".count").forEach(el => {
-    const dep = Number(el.dataset.dep);
-    const diffMin = Math.round((dep - now) / 60);
+    const leave = Number(el.dataset.leave);
+    const diffMin = Math.round((leave - now) / 60);
     const bigEl = el.querySelector(".big");
     const unitEl = el.querySelector(".unit");
     el.classList.remove("soon", "now");
     if (diffMin <= 0) {
       bigEl.textContent = "ora";
-      unitEl.textContent = "in partenza";
+      unitEl.textContent = "esci adesso";
       el.classList.add("now");
     } else {
       bigEl.textContent = diffMin;
-      unitEl.textContent = "min alla partenza";
+      unitEl.textContent = "min prima di uscire";
       if (diffMin <= 5) el.classList.add("soon");
     }
   });

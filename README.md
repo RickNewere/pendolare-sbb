@@ -4,8 +4,8 @@ Due web app che mostrano i **3 treni imminenti** del percorso casa-lavoro, con d
 
 ## Le due app
 
-- **Andata** — Chiasso → Bioggio (verso il lavoro): https://ricknewere.github.io/pendolare-sbb/andata/
-- **Ritorno** — Bioggio → Chiasso (verso casa): https://ricknewere.github.io/pendolare-sbb/ritorno/
+- **Andata** — Chiasso → Bioggio Molinazzo (verso il lavoro): https://ricknewere.github.io/pendolare-sbb/andata/
+- **Ritorno** — Bioggio Molinazzo → Chiasso (verso casa): https://ricknewere.github.io/pendolare-sbb/ritorno/
 
 Pagina di scelta: https://ricknewere.github.io/pendolare-sbb/
 
@@ -20,12 +20,18 @@ Per ciascuna app, sull'iPhone:
 
 ## Cosa mostra
 
-Per ognuno dei 3 treni imminenti:
-- Orario di partenza e conto alla rovescia ("min alla partenza").
-- **Ritardi**: se il treno è in ritardo, l'orario di orario compare barrato con accanto l'orario reale in giallo e i minuti (`+n′ ritardo`); il conto alla rovescia usa l'orario reale. Se non c'è ritardo mostra "in orario".
-- **Binario** di partenza; se il binario reale cambia rispetto all'orario, lo segnala come "(cambiato)".
-- Le linee del percorso (es. `RE80` SBB → cambio a Lugano → `S60` FLP) e la durata.
-- Orario di arrivo (in giallo con i minuti se in ritardo).
+Per ognuno dei 3 treni imminenti, una **timeline porta a porta** con l'orario di ogni passaggio:
+- **Esci di casa / dal lavoro**: orario in cui uscire, calcolato togliendo i minuti a piedi fino alla stazione.
+- **Ogni tratta con il suo orario di partenza**, incluso il **treno intermedio da Lugano** (la coincidenza `S60`/`RE80`): così sai a che ora parte anche il secondo treno.
+- **Arrivo** alla stazione di destinazione.
+- **Arrivo a destinazione** (lavoro / casa): orario di arrivo del treno più i minuti a piedi finali.
+- Conto alla rovescia grande: **"min prima di uscire"** (usa l'orario reale, ritardi inclusi; diventa "esci adesso" a zero).
+
+Tempi a piedi impostati:
+- **Andata**: 6 min per arrivare in stazione (Chiasso) + 10 min dalla stazione (Bioggio Molinazzo) al lavoro.
+- **Ritorno**: il contrario, 10 min alla stazione (Bioggio Molinazzo) + 6 min dalla stazione (Chiasso) a casa.
+
+**Ritardi**: ogni tratta mostra l'orario reale in giallo con i minuti (`+n′`) se in ritardo, altrimenti "in orario". Se il binario reale cambia rispetto all'orario, lo segnala come "(cambiato)".
 
 Si aggiorna da sola: dati ogni 60 secondi, orologio e conto alla rovescia ogni secondo.
 
@@ -50,10 +56,13 @@ icon-ritorno-*.png    icone ritorno (blu)
 
 ## Personalizzare
 
-Le stazioni sono impostate in fondo a ogni `index.html`:
+Stazioni e tempi a piedi sono impostati in fondo a ogni `index.html`:
 
 ```js
-window.APP_CONFIG = { from: "Chiasso", to: "Bioggio", dir: "andata" };
+window.APP_CONFIG = {
+  from: "Chiasso", to: "Bioggio Molinazzo", dir: "andata",
+  walkBefore: 6, walkAfter: 10, beforeLabel: "Esci di casa", afterLabel: "Al lavoro",
+};
 ```
 
 Ogni push su `main` ripubblica il sito tramite GitHub Actions.

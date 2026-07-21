@@ -19,7 +19,7 @@
 <body>
   <header>
     <div class="route">
-      Bioggio <span class="arrow">→</span> Chiasso
+      Bioggio Molinazzo <span class="arrow">→</span> Chiasso
       <span class="sub">Ritorno · verso casa</span>
     </div>
     <div class="clock">
@@ -40,7 +40,10 @@
     <div>Dati: transport.opendata.ch · SBB / FLP</div>
   </footer>
 
-  <script>window.APP_CONFIG = { from: "Bioggio", to: "Chiasso", dir: "ritorno" };</script>
+  <script>window.APP_CONFIG = {
+    from: "Bioggio Molinazzo", to: "Chiasso", dir: "ritorno",
+    walkBefore: 10, walkAfter: 6, beforeLabel: "Esci dal lavoro", afterLabel: "A casa",
+  };</script>
   <script src="../app.js"></script>
 </body>
 </html>
