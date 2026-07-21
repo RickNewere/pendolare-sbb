@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Andata · Chiasso → Bioggio</title>
+
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="→ Bioggio">
+  <link rel="apple-touch-icon" href="../icon-andata-180.png">
+  <link rel="icon" type="image/png" href="../icon-andata-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header>
+    <div class="route">
+      Chiasso <span class="arrow">→</span> Bioggio
+      <span class="sub">Andata · verso il lavoro</span>
+    </div>
+    <div class="clock">
+      <div class="time" id="clock-time">--:--</div>
+      <div class="date" id="clock-date">—</div>
+    </div>
+  </header>
+
+  <div class="list" id="list">
+    <div class="state-msg">Caricamento orari…</div>
+  </div>
+
+  <footer>
+    <div class="status">
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text">In attesa dei dati…</span>
+    </div>
+    <div>Dati: transport.opendata.ch · SBB / FLP</div>
+  </footer>
+
+  <script>window.APP_CONFIG = { from: "Chiasso", to: "Bioggio", dir: "andata" };</script>
+  <script src="../app.js"></script>
+</body>
+</html>

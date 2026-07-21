@@ -1,0 +1,17 @@
+{
+  "name": "Ritorno Bioggio → Chiasso",
+  "short_name": "→ Chiasso",
+  "description": "Prossimi treni verso casa: Bioggio → Chiasso (SBB / FLP).",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0f17",
+  "theme_color": "#0b0f17",
+  "lang": "it",
+  "icons": [
+    { "src": "../icon-ritorno-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "../icon-ritorno-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "../icon-ritorno-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
