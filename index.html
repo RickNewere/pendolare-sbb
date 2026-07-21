@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Pendolare · Chiasso ⇄ Bioggio</title>
+
+  <!-- PWA / iPhone "Aggiungi a Home" -->
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pendolare">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --bg-card: #141b28;
+      --bg-card-2: #1b2534;
+      --text: #f4f7fb;
+      --text-dim: #8a97ab;
+      --accent: #e30613;      /* rosso SBB */
+      --accent-2: #2ea6ff;
+      --green: #3ddc84;
+      --amber: #ffb020;
+      --border: rgba(255,255,255,0.07);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: calc(env(safe-area-inset-top) + 16px) calc(env(safe-area-inset-right) + 16px)
+               calc(env(safe-area-inset-bottom) + 16px) calc(env(safe-area-inset-left) + 16px);
+      background:
+        radial-gradient(1200px 600px at 15% -10%, rgba(46,166,255,0.10), transparent 60%),
+        radial-gradient(1000px 500px at 100% 0%, rgba(227,6,19,0.10), transparent 55%),
+        var(--bg);
+    }
+
+    /* ---------- Header ---------- */
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .head-left { display: flex; flex-direction: column; gap: 12px; }
+    .route {
+      font-weight: 700;
+      font-size: clamp(22px, 3.4vw, 40px);
+      letter-spacing: 0.2px;
+      line-height: 1;
+    }
+    .route .arrow { color: var(--accent); font-weight: 800; }
+    .route .sub {
+      display: block;
+      font-size: clamp(11px, 1.1vw, 15px);
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* toggle direzione */
+    .dir-toggle {
+      display: inline-flex;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .dir-toggle button {
+      border: 0;
+      background: transparent;
+      color: var(--text-dim);
+      font: inherit;
+      font-weight: 700;
+      font-size: clamp(13px, 1.4vw, 16px);
+      padding: 8px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+    }
+    .dir-toggle button.active { background: var(--accent); color: #fff; }
+
+    .clock { text-align: right; line-height: 1; }
+    .clock .time {
+      font-size: clamp(28px, 4vw, 52px);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .clock .date {
+      font-size: clamp(11px, 1.1vw, 15px);
+      color: var(--text-dim);
+      text-transform: capitalize;
+      margin-top: 4px;
+    }
+
+    /* ---------- Lista connessioni ---------- */
+    .list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--bg-card), var(--bg-card-2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: clamp(16px, 2vw, 28px) clamp(18px, 2.4vw, 34px);
+      display: grid;
+      grid-template-columns: minmax(150px, 1.1fr) 2fr auto;
+      align-items: center;
+      gap: clamp(16px, 2.5vw, 40px);
+      flex: 1;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      position: relative;
+      overflow: hidden;
+    }
+    .card.next::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 6px;
+      background: var(--accent);
+    }
+
+    .dep { display: flex; flex-direction: column; gap: 6px; }
+    .dep-time {
+      font-size: clamp(38px, 6vw, 74px);
+      font-weight: 800;
+      line-height: 0.95;
+      font-variant-numeric: tabular-nums;
+    }
+    .dep-meta { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .delay { font-size: clamp(14px, 1.5vw, 20px); font-weight: 700; }
+    .delay.late { color: var(--amber); }
+    .delay.ontime { color: var(--green); }
+    .platform { font-size: clamp(12px, 1.2vw, 17px); color: var(--text-dim); }
+    .platform b { color: var(--text); font-weight: 700; }
+
+    .route-legs { display: flex; align-items: center; gap: clamp(8px, 1vw, 16px); flex-wrap: wrap; }
+    .leg-line {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-weight: 700;
+      font-size: clamp(13px, 1.4vw, 19px);
+    }
+    .leg-line .badge {
+      background: var(--accent); color: #fff;
+      border-radius: 6px; padding: 2px 8px;
+      font-size: 0.8em; font-weight: 800; letter-spacing: 0.3px;
+    }
+    .leg-line.flp .badge { background: var(--accent-2); }
+    .leg-arrow { color: var(--text-dim); font-size: clamp(14px, 1.6vw, 22px); }
+    .trip-info { margin-top: 10px; color: var(--text-dim); font-size: clamp(12px, 1.2vw, 17px); }
+
+    .count { text-align: right; min-width: 120px; }
+    .count .big {
+      font-size: clamp(30px, 4.5vw, 62px);
+      font-weight: 800; line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .count .unit {
+      font-size: clamp(11px, 1.2vw, 16px);
+      color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;
+    }
+    .count.soon .big { color: var(--amber); }
+    .count.now .big { color: var(--accent); }
+    .count .arr { font-size: clamp(13px, 1.3vw, 18px); color: var(--text-dim); margin-top: 12px; }
+    .count .arr b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+    footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 16px; color: var(--text-dim); font-size: clamp(11px, 1vw, 14px);
+    }
+    .status { display: flex; align-items: center; gap: 8px; }
+    .dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 0 0 rgba(61,220,132,0.5);
+      animation: pulse 2.5s infinite;
+    }
+    .dot.err { background: var(--accent); animation: none; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(61,220,132,0.5); }
+      70% { box-shadow: 0 0 0 10px rgba(61,220,132,0); }
+      100% { box-shadow: 0 0 0 0 rgba(61,220,132,0); }
+    }
+    .state-msg {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: var(--text-dim); font-size: clamp(16px, 2vw, 24px); text-align: center;
+      padding: 40px 0;
+    }
+
+    /* ---------- Mobile / iPhone verticale ---------- */
+    @media (max-width: 720px) {
+      html, body { overflow-y: auto; }
+      body { min-height: 100dvh; }
+      header { align-items: center; }
+      .clock { display: none; }
+      .card {
+        grid-template-columns: auto 1fr;
+        grid-template-areas: "dep count" "path path";
+        gap: 12px 16px;
+        flex: 0 0 auto;
+      }
+      .dep { grid-area: dep; }
+      .path { grid-area: path; }
+      .count { grid-area: count; text-align: right; }
+      .count .arr { margin-top: 6px; }
+      .dep-time { font-size: 44px; }
+      .count .big { font-size: 40px; }
+      .route .sub { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="head-left">
+      <div class="route" id="route-title">
+        Chiasso <span class="arrow">→</span> Bioggio
+        <span class="sub">Prossimi treni</span>
+      </div>
+      <div class="dir-toggle" role="tablist">
+        <button id="btn-andata" type="button">→ Bioggio</button>
+        <button id="btn-ritorno" type="button">→ Chiasso</button>
+      </div>
+    </div>
+    <div class="clock">
+      <div class="time" id="clock-time">--:--</div>
+      <div class="date" id="clock-date">—</div>
+    </div>
+  </header>
+
+  <div class="list" id="list">
+    <div class="state-msg" id="loading">Caricamento orari…</div>
+  </div>
+
+  <footer>
+    <div class="status">
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text">In attesa dei dati…</span>
+    </div>
+    <div>Dati: transport.opendata.ch · SBB / FLP</div>
+  </footer>
+
+  <script>
+    const ROUTES = {
+      andata:  { from: "Chiasso", to: "Bioggio" },
+      ritorno: { from: "Bioggio", to: "Chiasso" },
+    };
+    const SHOW = 3;               // quanti viaggi mostrare
+    const REFRESH_MS = 60 * 1000; // aggiorna dati ogni 60s
+
+    // Direzione automatica: prima delle 13 = andata (verso il lavoro), poi ritorno.
+    function autoDirection() {
+      return new Date().getHours() < 13 ? "andata" : "ritorno";
+    }
+    let direction = autoDirection();
+
+    const listEl = document.getElementById("list");
+    const dotEl = document.getElementById("status-dot");
+    const statusEl = document.getElementById("status-text");
+    const titleEl = document.getElementById("route-title");
+    const btnAndata = document.getElementById("btn-andata");
+    const btnRitorno = document.getElementById("btn-ritorno");
+
+    let connections = [];
+
+    // ---------- Orologio ----------
+    function tickClock() {
+      const now = new Date();
+      document.getElementById("clock-time").textContent =
+        now.toLocaleTimeString("it-CH", { hour: "2-digit", minute: "2-digit" });
+      document.getElementById("clock-date").textContent =
+        now.toLocaleDateString("it-CH", { weekday: "long", day: "numeric", month: "long" });
+    }
+    function fmtTime(ts) {
+      return new Date(ts * 1000).toLocaleTimeString("it-CH", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    // ---------- Direzione / UI ----------
+    function setDirection(dir, manual) {
+      direction = dir;
+      if (manual) manualUntilReload = true;
+      const r = ROUTES[dir];
+      titleEl.innerHTML = `${r.from} <span class="arrow">→</span> ${r.to}<span class="sub">Prossimi treni</span>`;
+      btnAndata.classList.toggle("active", dir === "andata");
+      btnRitorno.classList.toggle("active", dir === "ritorno");
+      connections = [];
+      listEl.innerHTML = `<div class="state-msg">Caricamento orari…</div>`;
+      loadConnections();
+    }
+    let manualUntilReload = false;
+    btnAndata.addEventListener("click", () => setDirection("andata", true));
+    btnRitorno.addEventListener("click", () => setDirection("ritorno", true));
+
+    // ---------- Fetch ----------
+    async function loadConnections() {
+      const r = ROUTES[direction];
+      const url = `https://transport.opendata.ch/v1/connections?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}&limit=6`;
+      const reqDir = direction;
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        if (reqDir !== direction) return; // direzione cambiata nel frattempo
+        connections = (data.connections || []);
+        setStatus(true, "Aggiornato alle " + new Date().toLocaleTimeString("it-CH"));
+      } catch (err) {
+        if (reqDir !== direction) return;
+        setStatus(false, "Errore di rete: " + err.message);
+      }
+      render();
+    }
+    function setStatus(ok, msg) {
+      dotEl.classList.toggle("err", !ok);
+      statusEl.textContent = msg;
+    }
+
+    function buildLegs(conn) {
+      const legs = [];
+      for (const s of (conn.sections || [])) {
+        if (s.journey) {
+          legs.push({
+            shortLabel: shortLine(s.journey),
+            operator: s.journey.operator || "",
+            from: s.departure?.station?.name || "",
+            to: s.arrival?.station?.name || "",
+          });
+        }
+      }
+      return legs;
+    }
+    function shortLine(journey) {
+      const cat = (journey.category || "").trim();
+      const num = journey.number ? String(journey.number).trim() : "";
+      return (cat + num) || cat || "Treno";
+    }
+
+    // ---------- Render ----------
+    function render() {
+      const now = Date.now() / 1000;
+      const upcoming = connections
+        .filter(c => c.from && c.from.departureTimestamp && c.from.departureTimestamp > now - 60)
+        .slice(0, SHOW);
+
+      if (upcoming.length === 0) {
+        listEl.innerHTML = `<div class="state-msg">Nessun treno imminente trovato.<br>Nuovo tentativo in corso…</div>`;
+        return;
+      }
+      listEl.innerHTML = upcoming.map((c, i) => renderCard(c, i === 0)).join("");
+      updateCountdowns();
+    }
+
+    function renderCard(c, isNext) {
+      const depTs = c.from.departureTimestamp;
+      const arrTs = c.to.arrivalTimestamp;
+      const delay = c.from.delay || 0;
+      const platform = c.from.platform;
+      const transfers = c.transfers || 0;
+      const durMin = arrTs && depTs ? Math.round((arrTs - depTs) / 60) : null;
+
+      const legs = buildLegs(c);
+      const legsHtml = legs.map((leg, idx) => {
+        const isFlp = /flp/i.test(leg.operator) || /^S6\d/.test(leg.shortLabel);
+        const arrow = idx < legs.length - 1
+          ? `<span class="leg-arrow">→ ${escapeHtml(leg.to)} →</span>` : "";
+        return `<span class="leg-line ${isFlp ? "flp" : ""}"><span class="badge">${escapeHtml(leg.shortLabel)}</span></span>${arrow}`;
+      }).join("");
+
+      const delayHtml = delay > 0
+        ? `<span class="delay late">+${delay}′</span>`
+        : `<span class="delay ontime">in orario</span>`;
+      const platHtml = platform
+        ? `<span class="platform">Binario <b>${escapeHtml(platform)}</b></span>` : "";
+      const transferTxt = transfers === 0
+        ? "Diretto"
+        : `${transfers} cambio${transfers > 1 ? "i" : ""}${legs.length > 1 ? " · " + escapeHtml(legs[0].to) : ""}`;
+
+      return `
+        <div class="card ${isNext ? "next" : ""}">
+          <div class="dep">
+            <div class="dep-time">${fmtTime(depTs)}</div>
+            <div class="dep-meta">${delayHtml} ${platHtml}</div>
+          </div>
+          <div class="path">
+            <div class="route-legs">${legsHtml}</div>
+            <div class="trip-info">${transferTxt}${durMin != null ? " · " + durMin + " min" : ""}</div>
+          </div>
+          <div class="count" data-dep="${depTs}">
+            <div class="big">--</div>
+            <div class="unit">min alla partenza</div>
+            <div class="arr">Arrivo <b>${fmtTime(arrTs)}</b></div>
+          </div>
+        </div>`;
+    }
+
+    function updateCountdowns() {
+      const now = Date.now() / 1000;
+      document.querySelectorAll(".count").forEach(el => {
+        const dep = Number(el.dataset.dep);
+        const diffMin = Math.round((dep - now) / 60);
+        const bigEl = el.querySelector(".big");
+        const unitEl = el.querySelector(".unit");
+        el.classList.remove("soon", "now");
+        if (diffMin <= 0) {
+          bigEl.textContent = "ora";
+          unitEl.textContent = "in partenza";
+          el.classList.add("now");
+        } else {
+          bigEl.textContent = diffMin;
+          unitEl.textContent = "min alla partenza";
+          if (diffMin <= 5) el.classList.add("soon");
+        }
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // ---------- Avvio ----------
+    tickClock();
+    setInterval(tickClock, 1000);
+    setInterval(updateCountdowns, 1000);
+    setInterval(loadConnections, REFRESH_MS);
+
+    // Ricontrolla la direzione automatica ogni minuto (se non hai scelto a mano)
+    setInterval(() => {
+      if (!manualUntilReload) {
+        const auto = autoDirection();
+        if (auto !== direction) setDirection(auto, false);
+      }
+    }, 60 * 1000);
+
+    setDirection(direction, false);
+  </script>
+</body>
+</html>
